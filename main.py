@@ -30,24 +30,44 @@ class Logger:
     def __init__(self, text_widget):
         self.text_widget = text_widget
         self.stdout = sys.stdout  # 保存原始 stdout
+        self.stderr = sys.stderr  # 保存原始 stderr
 
     def write(self, message):
-        # 写入原始控制台
-        self.stdout.write(message)
-        # 写入界面文本框（在主线程中执行，避免线程安全问题）
-        if self.text_widget.winfo_exists():
-            self.text_widget.after(0, self._append_text, message)
+        # 写入原始控制台（调试用，确保控制台也能看到）
+        try:
+            self.stdout.write(message)
+            self.stdout.flush()
+        except:
+            pass
+        
+        # 写入界面文本框（使用 after 确保在主线程执行，避免线程安全问题）
+        try:
+            if self.text_widget.winfo_exists():
+                self.text_widget.after(0, lambda msg=message: self._append_text(msg))
+        except Exception as e:
+            # 如果UI写入失败，至少写入原始stderr
+            try:
+                self.stderr.write(f"Logger UI error: {e}\n")
+            except:
+                pass
 
     def _append_text(self, message):
+        """在主线程中执行的实际插入操作"""
         try:
             self.text_widget.insert(tk.END, message)
             self.text_widget.see(tk.END)  # 自动滚动到底部
         except tk.TclError:
             pass  # 窗口已关闭
+        except Exception:
+            pass
 
     def flush(self):
-        self.stdout.flush()
-        
+        """flush 方法，print 调用时会触发"""
+        try:
+            self.stdout.flush()
+        except:
+            pass
+
 
 def init_browser():
     """使用 exe 同级目录的 chromedriver 和 chrome"""
@@ -412,8 +432,13 @@ def run_once():
         print(f"✅ 本轮发送完成")
 
     except Exception as e:
+        # 使用 print 输出异常，确保走 Logger 显示在UI中
         import traceback
-        traceback.print_exc()
+        error_msg = traceback.format_exc()
+        print(f"\n{'='*60}")
+        print(f"❌ 执行过程中发生错误：")
+        print(error_msg)
+        print(f"{'='*60}\n")
 
     finally:
         # 无论成功失败，都关闭浏览器
@@ -430,12 +455,15 @@ def worker_loop():
     每次循环：打开浏览器 → 登录 → 执行任务 → 关闭浏览器 → 等待间隔时间
     """
     CONFIG["running"] = True
+    round_num = 0  # 轮次计数器
+    
     while CONFIG["running"]:
+        round_num += 1
         start_time = datetime.now()
         next_time = start_time + timedelta(minutes=CONFIG["interval_minutes"])
 
         print(f"\n{'=' * 60}")
-        print(f"🚀 第 1 轮执行开始")
+        print(f"🚀 第 {round_num} 轮执行开始")
         print(f"⏰ 开始时间：{start_time.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"📨 消息内容：{CONFIG['message']}")
         print(f"⏳ 下次执行：{next_time.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -512,11 +540,20 @@ def stop_program():
     btn_stop.config(state="disabled")
 
 
+def on_closing():
+    """窗口关闭时的处理"""
+    CONFIG["running"] = False
+    root.destroy()
+
+
 # ==================== tkinter 界面 ====================
 root = tk.Tk()
 root.title("车辆消息自动发送工具")
 root.geometry("800x650")
 root.minsize(700, 500)
+
+# 设置窗口关闭协议
+root.protocol("WM_DELETE_WINDOW", on_closing)
 
 # 顶部配置区域
 top_frame = tk.Frame(root, padx=15, pady=10)
@@ -590,14 +627,15 @@ def clear_log():
 tk.Button(log_btn_frame, text="🗑 清空日志", font=("Microsoft YaHei", 9),
           command=clear_log).pack(side="left", padx=5)
 
-# 重定向 print 到日志框
-sys.stdout = Logger(log_text)
-
-original_stdout = sys.stdout.stdout if hasattr(sys.stdout, 'stdout') else sys.__stdout__
+# ==================== 重定向 stdout 和 stderr 到 UI ====================
+# 必须在所有UI控件创建完成后、mainloop之前设置
+logger = Logger(log_text)
+sys.stdout = logger
+sys.stderr = logger  # ← 关键：异常信息也能显示在UI中
 
 # 启动界面
 root.mainloop()
 
-# 恢复原始 stdout
-sys.stdout = original_stdout
-# sys.stdout = sys.stdout.stdout if hasattr(sys.stdout, 'stdout') else sys.__stdout__
+# 窗口关闭后恢复原始 stdout/stderr
+sys.stdout = sys.__stdout__
+sys.stderr = sys.__stderr__
