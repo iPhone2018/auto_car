@@ -97,6 +97,22 @@ def init_browser():
     
     options = webdriver.ChromeOptions()
     options.binary_location = portable_chrome
+    # ========== 关键修复参数 ==========
+    options.add_argument("--no-sandbox")                    # 禁用沙箱模式（便携版必需）
+    options.add_argument("--disable-dev-shm-usage")         # 禁用 /dev/shm（避免内存问题）
+    options.add_argument("--disable-gpu")                   # 禁用 GPU 加速
+    options.add_argument("--disable-software-rasterizer")   # 禁用软件光栅化
+    options.add_argument("--disable-extensions")           # 禁用扩展
+    options.add_argument("--disable-background-networking") # 禁用后台网络
+    
+    # 指定用户数据目录（解决 DevToolsActivePort 问题）
+    user_data_dir = os.path.join(base_dir, "chrome_user_data")
+    os.makedirs(user_data_dir, exist_ok=True)
+    options.add_argument(f"--user-data-dir={user_data_dir}")
+    
+    # 指定远程调试端口（解决 DevToolsActivePort 问题）
+    options.add_argument("--remote-debugging-port=9222")
+    
     options.add_argument("--start-maximized")
     options.add_experimental_option("excludeSwitches", ["enable-logging"])
     options.add_argument("--disable-animations")
