@@ -50,34 +50,38 @@ class Logger:
         
 
 def init_browser():
-    """使用同级目录的 chromedriver.exe 和便携版 Chrome"""
+    """使用同级目录的 chromedriver 和 chrome，绝不下载"""
     
     if getattr(sys, 'frozen', False):
         base_dir = os.path.dirname(sys.executable)
     else:
         base_dir = os.path.dirname(os.path.abspath(__file__))
     
+    # 本地 chromedriver.exe（注意你的文件名是 chromedriver，没有 .exe 后缀？）
     local_driver = os.path.join(base_dir, "chromedriver.exe")
+    # 如果实际文件名没有 .exe，改成：
+    # local_driver = os.path.join(base_dir, "chromedriver")
     
-    # 便携版 Chrome 路径
-    portable_chrome = os.path.join(base_dir, "chrome-win64", "chrome.exe")
+    # 本地 Chrome
+    portable_chrome = os.path.join(base_dir, "chrome", "chrome.exe")
+    
+    # 检查文件是否存在
+    if not os.path.exists(local_driver):
+        raise FileNotFoundError(f"找不到 chromedriver：{local_driver}")
+    
+    if not os.path.exists(portable_chrome):
+        raise FileNotFoundError(f"找不到 Chrome：{portable_chrome}")
+    
+    print(f"✅ 使用本地 ChromeDriver：{local_driver}")
+    print(f"✅ 使用本地 Chrome：{portable_chrome}")
     
     options = webdriver.ChromeOptions()
+    options.binary_location = portable_chrome
     options.add_argument("--start-maximized")
     options.add_experimental_option("excludeSwitches", ["enable-logging"])
     options.add_argument("--disable-animations")
     
-    # 如果存在便携版 Chrome，指定使用它
-    if os.path.exists(portable_chrome):
-        options.binary_location = portable_chrome
-        print(f"✅ 使用便携版 Chrome：{portable_chrome}")
-    
-    if os.path.exists(local_driver):
-        print(f"✅ 使用本地 ChromeDriver：{local_driver}")
-        driver = webdriver.Chrome(service=Service(local_driver), options=options)
-    else:
-        raise FileNotFoundError(f"找不到 {local_driver}，请确保与 exe 放在同一目录")
-    
+    driver = webdriver.Chrome(service=Service(local_driver), options=options)
     wait = WebDriverWait(driver, 15)
     short_wait = WebDriverWait(driver, 3)
     return driver, wait, short_wait
