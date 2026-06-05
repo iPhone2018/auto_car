@@ -50,27 +50,27 @@ class Logger:
         
 
 def init_browser():
-    """使用同级目录的 chromedriver 和 chrome，绝不下载"""
+    """使用 exe 同级目录的 chromedriver 和 chrome"""
     
     if getattr(sys, 'frozen', False):
-        base_dir = os.path.dirname(sys.executable)
+        # PyInstaller --onefile: sys.executable 是临时目录
+        # 用 sys.argv[0] 获取 exe 真实路径
+        base_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
     else:
         base_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # 本地 chromedriver.exe（注意你的文件名是 chromedriver，没有 .exe 后缀？）
     local_driver = os.path.join(base_dir, "chromedriver.exe")
-    # 如果实际文件名没有 .exe，改成：
-    # local_driver = os.path.join(base_dir, "chromedriver")
-    
-    # 本地 Chrome
     portable_chrome = os.path.join(base_dir, "chrome", "chrome.exe")
     
-    # 检查文件是否存在
+    print(f"📁 程序目录：{base_dir}")
+    print(f"🔍 查找 ChromeDriver：{local_driver}")
+    print(f"🔍 查找 Chrome：{portable_chrome}")
+    
     if not os.path.exists(local_driver):
-        raise FileNotFoundError(f"找不到 chromedriver：{local_driver}")
+        raise FileNotFoundError(f"找不到 chromedriver.exe，请确保与 exe 放在同一目录\n查找路径：{local_driver}")
     
     if not os.path.exists(portable_chrome):
-        raise FileNotFoundError(f"找不到 Chrome：{portable_chrome}")
+        raise FileNotFoundError(f"找不到 chrome.exe，请确保 chrome 文件夹与 exe 放在同一目录\n查找路径：{portable_chrome}")
     
     print(f"✅ 使用本地 ChromeDriver：{local_driver}")
     print(f"✅ 使用本地 Chrome：{portable_chrome}")
