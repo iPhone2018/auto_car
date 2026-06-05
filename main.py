@@ -47,35 +47,36 @@ class Logger:
 
     def flush(self):
         self.stdout.flush()
-
+        
 
 def init_browser():
-    """初始化浏览器，优先使用同级目录的 chromedriver.exe"""
+    """使用同级目录的 chromedriver.exe 和便携版 Chrome"""
     
-    # 判断运行环境：打包后 vs 开发环境
     if getattr(sys, 'frozen', False):
-        # PyInstaller 打包后的 exe 所在目录
         base_dir = os.path.dirname(sys.executable)
     else:
-        # 开发环境：py 文件所在目录
         base_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # 同级目录下的 chromedriver.exe
     local_driver = os.path.join(base_dir, "chromedriver.exe")
+    
+    # 便携版 Chrome 路径
+    portable_chrome = os.path.join(base_dir, "chrome-win64", "chrome.exe")
     
     options = webdriver.ChromeOptions()
     options.add_argument("--start-maximized")
     options.add_experimental_option("excludeSwitches", ["enable-logging"])
     options.add_argument("--disable-animations")
     
+    # 如果存在便携版 Chrome，指定使用它
+    if os.path.exists(portable_chrome):
+        options.binary_location = portable_chrome
+        print(f"✅ 使用便携版 Chrome：{portable_chrome}")
+    
     if os.path.exists(local_driver):
         print(f"✅ 使用本地 ChromeDriver：{local_driver}")
         driver = webdriver.Chrome(service=Service(local_driver), options=options)
     else:
-        print("⚠️ 未找到本地 chromedriver.exe，尝试自动下载...")
-        os.environ["WDM_CFT_DOWNLOAD_URL"] = "https://registry.npmmirror.com/-/binary/chrome-for-testing"
-        os.environ["WDM_LOCAL"] = "1"
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        raise FileNotFoundError(f"找不到 {local_driver}，请确保与 exe 放在同一目录")
     
     wait = WebDriverWait(driver, 15)
     short_wait = WebDriverWait(driver, 3)
