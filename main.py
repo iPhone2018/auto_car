@@ -50,19 +50,14 @@ class Logger:
 
 
 def init_browser():
-    """初始化浏览器，返回 driver 和 wait 对象"""
-    os.environ["WDM_CFT_DOWNLOAD_URL"] = "https://registry.npmmirror.com/-/binary/chrome-for-testing"
-    os.environ["WDM_LOCAL"] = "1"
-
-    options = webdriver.ChromeOptions()
+    options = EdgeOptions()
     options.add_argument("--start-maximized")
     options.add_experimental_option("excludeSwitches", ["enable-logging"])
     options.add_argument("--disable-animations")
 
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver = webdriver.Edge(service=EdgeService(EdgeChromiumDriverManager().install()), options=options)
     wait = WebDriverWait(driver, 15)
     short_wait = WebDriverWait(driver, 3)
-
     return driver, wait, short_wait
 
 
@@ -578,5 +573,5 @@ original_stdout = sys.stdout.stdout if hasattr(sys.stdout, 'stdout') else sys.__
 root.mainloop()
 
 # 恢复原始 stdout
-# sys.stdout = sys.stdout.stdout if hasattr(sys.stdout, 'stdout') else sys.__stdout__
 sys.stdout = original_stdout
+# sys.stdout = sys.stdout.stdout if hasattr(sys.stdout, 'stdout') else sys.__stdout__
