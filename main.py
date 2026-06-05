@@ -572,8 +572,11 @@ tk.Button(log_btn_frame, text="🗑 清空日志", font=("Microsoft YaHei", 9),
 # 重定向 print 到日志框
 sys.stdout = Logger(log_text)
 
+original_stdout = sys.stdout.stdout if hasattr(sys.stdout, 'stdout') else sys.__stdout__
+
 # 启动界面
 root.mainloop()
 
 # 恢复原始 stdout
-sys.stdout = sys.stdout.stdout if hasattr(sys.stdout, 'stdout') else sys.__stdout__%
+# sys.stdout = sys.stdout.stdout if hasattr(sys.stdout, 'stdout') else sys.__stdout__
+sys.stdout = original_stdout
