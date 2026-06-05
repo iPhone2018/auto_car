@@ -50,12 +50,33 @@ class Logger:
 
 
 def init_browser():
-    options = EdgeOptions()
+    """初始化浏览器，优先使用同级目录的 chromedriver.exe"""
+    
+    # 判断运行环境：打包后 vs 开发环境
+    if getattr(sys, 'frozen', False):
+        # PyInstaller 打包后的 exe 所在目录
+        base_dir = os.path.dirname(sys.executable)
+    else:
+        # 开发环境：py 文件所在目录
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # 同级目录下的 chromedriver.exe
+    local_driver = os.path.join(base_dir, "chromedriver.exe")
+    
+    options = webdriver.ChromeOptions()
     options.add_argument("--start-maximized")
     options.add_experimental_option("excludeSwitches", ["enable-logging"])
     options.add_argument("--disable-animations")
-
-    driver = webdriver.Edge(service=EdgeService(EdgeChromiumDriverManager().install()), options=options)
+    
+    if os.path.exists(local_driver):
+        print(f"✅ 使用本地 ChromeDriver：{local_driver}")
+        driver = webdriver.Chrome(service=Service(local_driver), options=options)
+    else:
+        print("⚠️ 未找到本地 chromedriver.exe，尝试自动下载...")
+        os.environ["WDM_CFT_DOWNLOAD_URL"] = "https://registry.npmmirror.com/-/binary/chrome-for-testing"
+        os.environ["WDM_LOCAL"] = "1"
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    
     wait = WebDriverWait(driver, 15)
     short_wait = WebDriverWait(driver, 3)
     return driver, wait, short_wait
